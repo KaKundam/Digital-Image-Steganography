@@ -3,6 +3,12 @@ import numpy as np
 import os
 import glob
 
+def text_to_bits(text):
+    return ''.join(format(ord(c), '08b') for c in text)
+
+def ber(original_bits, extracted_bits):
+    errors = sum(o != e for o, e in zip(original_bits, extracted_bits))
+    return errors / len(original_bits)
 
 class IWTSteganography:
     def __init__(self):
@@ -122,13 +128,25 @@ class IWTSteganography:
         return self._binary_to_text(binary_data)
 
 
+
+def embed_dwt(image_path, secret_text, output_path):
+    tool = IWTSteganography()
+    folder = os.path.dirname(output_path)
+    os.makedirs(folder, exist_ok=True)
+    return tool.embed_data(image_path, secret_text, folder)
+
+def extract_dwt(stego_image_path):
+    tool = IWTSteganography()
+    return tool.extract_data(stego_image_path)
+
+
 if __name__ == "__main__":
     import os
     import glob
 
     INPUT_FOLDER = "dataset"          # đổi về dataset cho thống nhất
     OUTPUT_FOLDER = "output/dwt"       # chuẩn hóa output
-    SECRET_MESSAGE = "Xin chao! Day la mat ma bi mat su dung IWT."
+    SECRET_MESSAGE = "DigitalForensic2026"
 
     ENABLE_EXTRACT_TEST = False        # <<< CHỈ BẬT KHI CẦN DEBUG
 
