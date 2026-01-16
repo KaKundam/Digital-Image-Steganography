@@ -7,7 +7,7 @@
 
 ### Required Libraries
 ```bash
-pip install numpy opencv-python scikit-image pillow scipy
+pip install -r requirement.txt
 ````
 
 ---
@@ -51,6 +51,12 @@ python -m methods.embed.DFT
 
 ```bash
 python -m methods.embed.DWT
+```
+
+### One For All
+
+```bash
+python generate.py
 ```
 
 Stego images will be saved to:
@@ -97,10 +103,6 @@ python evaluate.py
 * Gaussian Noise Attack
 * JPEG Compression (Quality = 90, 80)
 
-⚠️ **Note**
-For **DWT**, BER may exceed 100% under strong attacks.
-This indicates **complete desynchronization** during extraction, not an implementation error.
-
 ---
 
 ## 6. Important Notes
@@ -116,13 +118,6 @@ This indicates **complete desynchronization** during extraction, not an implemen
 ## 7. Quick Pipeline (TL;DR)
 
 ```bash
-python -m methods.embed.DFT
-python -m methods.embed.DWT
+python generate.py
 python evaluate.py
-```
-
----
-
-This project compares **DFT-based** and **DWT-based** image steganography in terms of imperceptibility and robustness against common image attacks.
-
 ```
