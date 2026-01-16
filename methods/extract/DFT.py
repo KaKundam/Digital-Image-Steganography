@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from ..utils import bits_to_text, MARKER, DELTA, BLOCK_SIZE
+from ..utils import bits_to_text, MARKER, DFT_DELTA, BLOCK_SIZE
 
 def extract_from_block(block):
     dft = np.fft.fft2(block.astype(float))
@@ -8,7 +8,7 @@ def extract_from_block(block):
     val = np.abs(dft[3, 3])
     
     # Giải mã QIM
-    k = round(val / DELTA)
+    k = round(val / DFT_DELTA)
     return str(k % 2)
 
 def process_extract(channel):
@@ -97,4 +97,3 @@ if __name__ == "__main__":
 
         print(f"    -> Extracted message: {msg}")
         print("-" * 50)
-  

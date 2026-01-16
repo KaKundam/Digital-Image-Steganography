@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from ..utils import text_to_bits, DELTA, BLOCK_SIZE
+from ..utils import text_to_bits, DFT_DELTA, BLOCK_SIZE
 
 def embed_block(block, bit):
     """Nhúng 1 bit vào khối 8x8 dựa trên Biên độ (Magnitude)"""
@@ -20,13 +20,13 @@ def embed_block(block, bit):
     target_bit = int(bit)
     
     # Tìm bội số k của DELTA
-    k = round(val / DELTA)
+    k = round(val / DFT_DELTA)
     if k % 2 != target_bit:
         # Điều chỉnh k để khớp với bit (chẵn/lẻ)
-        if (val - k * DELTA) >= 0: k += 1
+        if (val - k * DFT_DELTA) >= 0: k += 1
         else: k -= 1
     
-    new_val = k * DELTA
+    new_val = k * DFT_DELTA
     
     # 4. Cập nhật Biên độ (Giữ nguyên Pha) cho cả 2 điểm đối xứng
     magnitude[u, v] = new_val
@@ -99,7 +99,7 @@ def embed_dft(image_path, secret_text, output_path, mode='gray'):
         output_path += ".png"
     
     cv2.imwrite(output_path, final_img)
-    print(f"[Success] Đã lưu: {output_path} (Delta={DELTA})")
+    print(f"[Success] Đã lưu: {output_path} (Delta={DFT_DELTA})")
     return True
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ from methods.utils import text_to_bits, bits_to_text
 # ==============================
 # IMPORT EXTRACTORS
 # ==============================
+from methods.extract.DCT import extract_dct
 from methods.extract.DFT import extract_dft
 from methods.extract.DWT import extract_dwt
 
@@ -17,6 +18,7 @@ from methods.extract.DWT import extract_dwt
 DATASET_DIR = "dataset"
 OUTPUT_DIR = "output"
 
+DCT_DIR = os.path.join(OUTPUT_DIR, "dct")
 DFT_DIR = os.path.join(OUTPUT_DIR, "dft")
 DWT_DIR = os.path.join(OUTPUT_DIR, "dwt")
 
@@ -141,6 +143,12 @@ def evaluate_method(method_name, stego_dir, extractor):
 # ==============================
 if __name__ == "__main__":
     print("===== DIGITAL IMAGE STEGANOGRAPHY EVALUATION =====")
+
+    evaluate_method(
+        method_name="DCT",
+        stego_dir=DCT_DIR,
+        extractor=extract_dct
+    )
 
     evaluate_method(
         method_name="DFT",

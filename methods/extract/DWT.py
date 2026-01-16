@@ -3,6 +3,8 @@ import numpy as np
 import os
 import glob
 
+from ..utils import bits_to_text, BLOCK_SIZE
+
 def text_to_bits(text):
     return ''.join(format(ord(c), '08b') for c in text)
 
@@ -15,17 +17,17 @@ class IWTSteganography:
         self.channel_to_use = 0
         self.DELIMITER = '1111111111111110'
 
-    def _text_to_binary(self, text):
-        binary_str = ''.join(format(ord(char), '08b') for char in text)
-        return binary_str + self.DELIMITER
+    # def _text_to_binary(self, text):
+    #     binary_str = ''.join(format(ord(char), '08b') for char in text)
+    #     return binary_str + self.DELIMITER
 
-    def _binary_to_text(self, binary_str):
-        chars = []
-        for i in range(0, len(binary_str), 8):
-            byte = binary_str[i:i + 8]
-            if len(byte) == 8:
-                chars.append(chr(int(byte, 2)))
-        return ''.join(chars)
+    # def _binary_to_text(self, binary_str):
+    #     chars = []
+    #     for i in range(0, len(binary_str), 8):
+    #         byte = binary_str[i:i + 8]
+    #         if len(byte) == 8:
+    #             chars.append(chr(int(byte, 2)))
+    #     return ''.join(chars)
 
     def _iwt_haar_forward(self, block):
         block = block.astype(np.int32)
@@ -63,7 +65,7 @@ class IWTSteganography:
 
         channel_data = channel_data[:height, :width]
 
-        binary_secret = self._text_to_binary(secret_data)
+        binary_secret = text_to_bits(secret_data)
         data_len = len(binary_secret)
 
         flat_pixels = channel_data.flatten()
@@ -125,7 +127,7 @@ class IWTSteganography:
         if not delimiter_found:
             return "[Cảnh báo] Không tìm thấy dấu hiệu kết thúc tin nhắn."
 
-        return self._binary_to_text(binary_data)
+        return bits_to_text(binary_data)
 
 def embed_dwt(image_path, secret_text, output_path):
     tool = IWTSteganography()

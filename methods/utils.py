@@ -2,7 +2,9 @@ import numpy as np
 
 # Cấu hình "Nồi đồng cối đá" để bao chạy
 MARKER = "###"
-DELTA = 30       # Tăng Delta lên cao để chống nhiễu do cắt cụt pixel (Clipping)
+
+DCT_DELTA = 60
+DFT_DELTA = 25       # Tăng Delta lên cao để chống nhiễu do cắt cụt pixel (Clipping)
 BLOCK_SIZE = 8   
 
 def text_to_bits(text):
