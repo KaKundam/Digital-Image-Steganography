@@ -101,3 +101,48 @@ def embed_dft(image_path, secret_text, output_path, mode='gray'):
     cv2.imwrite(output_path, final_img)
     print(f"[Success] Đã lưu: {output_path} (Delta={DELTA})")
     return True
+
+if __name__ == "__main__":
+    import os
+    import glob
+
+    INPUT_FOLDER = "../dataset"
+    OUTPUT_FOLDER = "../output/dft"
+    SECRET_MESSAGE = "Xin chao! Day la mat ma DFT."
+    MODE = "gray"          # gray | blue | cb
+
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+    types = ('*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tif')
+    image_files = []
+    for t in types:
+        image_files.extend(glob.glob(os.path.join(INPUT_FOLDER, t)))
+
+    if not image_files:
+        print(image_files)
+        print("[!] Không tìm thấy ảnh input")
+        exit()
+
+    print(f"[+] DFT embedding: {len(image_files)} ảnh")
+    print("-" * 50)
+
+    for img_path in image_files:
+        name = os.path.splitext(os.path.basename(img_path))[0]
+        output_path = os.path.join(
+            OUTPUT_FOLDER,
+            f"{name}_stego_dft.png"
+        )
+
+        print(f"[*] {name}")
+
+        ok = embed_dft(
+            img_path,
+            SECRET_MESSAGE,
+            output_path,
+            mode=MODE
+        )
+
+        if ok:
+            print(f"    -> Saved: {output_path}")
+
+        print("-" * 50)
