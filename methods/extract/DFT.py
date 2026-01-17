@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
-from ..utils import bits_to_text, MARKER, DFT_DELTA, BLOCK_SIZE
+from ..utils import bits_to_text, DFT_MARKER, DFT_DELTA, BLOCK_SIZE
 
 def extract_from_block(block):
+    # Phải chuyển sang float để tính DFT chính xác
     dft = np.fft.fft2(block.astype(float))
-    # Lấy biên độ tại (3,3)
+    
+    # Lấy biên độ tại (3,3) - Phải khớp với bên Embed
     val = np.abs(dft[3, 3])
     
     # Giải mã QIM
@@ -23,28 +25,22 @@ def process_extract(channel):
             block = channel[i:i+BLOCK_SIZE, j:j+BLOCK_SIZE]
             extracted_bits += extract_from_block(block)
             
-            # Check Marker
-            if len(extracted_bits) % 8 == 0 and len(extracted_bits) >= 24:
-                # Chỉ check đoạn cuối để tối ưu
-                suffix = extracted_bits[-24:]
+            # Check DFT_MARKER mỗi khi đủ 1 ký tự (8 bits) để tối ưu tốc độ
+            if len(extracted_bits) % 8 == 0:
+                # Chỉ kiểm tra đoạn cuối cùng có độ dài bằng DFT_MARKER
+                # Ví dụ DFT_MARKER là @@@@@ (40 bits), chỉ lấy 40 bit cuối để check text
                 try:
-                    if bits_to_text(suffix) == MARKER:
-                        return bits_to_text(extracted_bits).split(MARKER)[0]
+                    current_text = bits_to_text(extracted_bits)
+                    if current_text.endswith(DFT_MARKER):
+                        return current_text[:-len(DFT_MARKER)] # Cắt bỏ DFT_MARKER và trả về tin
                 except:
+                    # Bỏ qua lỗi nếu bits chưa tạo thành ký tự utf-8 hợp lệ
                     pass
     
-    # Thử check lần cuối nếu vòng lặp kết thúc mà chưa return
-    try:
-        full_msg = bits_to_text(extracted_bits)
-        if MARKER in full_msg:
-            return full_msg.split(MARKER)[0]
-    except:
-        pass
-        
-    return None
+    return "[Fail] Không tìm thấy DFT_MARKER (Tin nhắn có thể đã bị hỏng do nén/nhiễu)"
 
-def extract_dft(stego_image_path, mode='gray'):
-    # Đọc ảnh đúng chuẩn
+def extract_dft(stego_image_path, mode='blue'): # Default nên để giống embed
+    # ... (Phần đọc ảnh giữ nguyên như code của bạn) ...
     if mode == 'gray':
         img = cv2.imread(stego_image_path, cv2.IMREAD_GRAYSCALE)
         target = img
@@ -63,19 +59,14 @@ def extract_dft(stego_image_path, mode='gray'):
 
     if target is None: return "Lỗi đọc file."
 
-    msg = process_extract(target)
-    if msg:
-        return msg
-    else:
-        return "[Fail] Vẫn không tìm thấy (Do Delta chưa đủ lớn hoặc ảnh quá nhiễu)."
-
+    return process_extract(target)
 
 if __name__ == "__main__":
     import os
     import glob
 
     STEGO_FOLDER = "output/dft"
-    MODE = "gray"   # phải trùng với mode lúc embed
+    MODE = "blue"   # phải trùng với mode lúc embed
 
     types = ('*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tif')
     stego_files = []

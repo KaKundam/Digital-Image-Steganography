@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from ..utils import text_to_bits, DFT_DELTA, BLOCK_SIZE
+from ..utils import text_to_bits, DFT_DELTA, DFT_MARKER, BLOCK_SIZE
 
 def embed_block(block, bit):
     """Nhúng 1 bit vào khối 8x8 dựa trên Biên độ (Magnitude)"""
@@ -65,13 +65,14 @@ def process_channel(channel, bits):
     final_channel[:h_crop, :w_crop] = channel_cropped
     return final_channel
 
-def embed_dft(image_path, secret_text, output_path, mode='gray'):
+def embed_dft(image_path, secret_text, output_path, mode='blue'):
     img = cv2.imread(image_path)
     if img is None:
         print("Lỗi: Không tìm thấy ảnh.")
         return False
 
-    bits = text_to_bits(secret_text)
+    full_text = secret_text + DFT_MARKER 
+    bits = text_to_bits(full_text)
 
     # Xử lý các Mode
     if mode == 'gray':
@@ -109,7 +110,7 @@ if __name__ == "__main__":
     INPUT_FOLDER = "dataset"
     OUTPUT_FOLDER = "output/dft"
     SECRET_MESSAGE = "DigitalForensic2026"
-    MODE = "gray"          # gray | blue | cb
+    MODE = "blue"          # gray | blue | cb
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 

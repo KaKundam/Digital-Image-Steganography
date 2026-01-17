@@ -1,20 +1,19 @@
 import numpy as np
 
 # Cấu hình "Nồi đồng cối đá" để bao chạy
-MARKER = "###"
+DFT_MARKER = "####"
 
 DCT_DELTA = 60
-DFT_DELTA = 25       # Tăng Delta lên cao để chống nhiễu do cắt cụt pixel (Clipping)
+DFT_DELTA = 80       # Tăng Delta lên cao để chống nhiễu do cắt cụt pixel (Clipping)
 BLOCK_SIZE = 8   
 
 def text_to_bits(text):
-    full_text = text + MARKER
-    bits = bin(int.from_bytes(full_text.encode('utf-8'), 'big'))[2:]
-    return bits.zfill(8 * ((len(bits) + 7) // 8))
+    return ''.join(format(ord(c), '08b') for c in text)
 
 def bits_to_text(bits):
-    try:
-        n = int(bits, 2)
-        return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode('utf-8', errors='ignore')
-    except:
-        return ""
+    chars = []
+    for i in range(0, len(bits), 8):
+        byte = bits[i:i+8]
+        if len(byte) == 8:
+            chars.append(chr(int(byte, 2)))
+    return ''.join(chars)

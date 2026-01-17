@@ -1,177 +1,65 @@
 import cv2
 import numpy as np
+import pywt
 import os
 import glob
-from ..utils import text_to_bits, bits_to_text
+from ..utils import text_to_bits
 
+CHANNEL = 0  # Grayscale or single channel
 
-def ber(original_bits, extracted_bits):
-    errors = sum(o != e for o, e in zip(original_bits, extracted_bits))
-    return errors / len(original_bits)
+def dwt2(channel):
+    return pywt.dwt2(channel, 'haar')
 
-class IWTSteganography:
-    def __init__(self):
-        self.channel_to_use = 0
-        self.DELIMITER = '1111111111111110'
+def idwt2(coeffs):
+    return pywt.idwt2(coeffs, 'haar')
 
+def embed_bits_in_HH(HH, binary_message):
+    flat = HH.flatten().copy()
 
-    def _iwt_haar_forward(self, block):
-        block = block.astype(np.int32)
-        even = block[0::2]
-        odd = block[1::2]
-        d = odd - even
-        s = even + (d // 2)
-        return s, d
+    msg_len = len(binary_message)
+    header = format(msg_len, '032b')
+    payload = header + binary_message
 
-    def _iwt_haar_inverse(self, s, d):
-        even = s - (d // 2)
-        odd = d + even
-        reconstructed = np.zeros(len(s) + len(d), dtype=np.int32)
-        reconstructed[0::2] = even
-        reconstructed[1::2] = odd
-        return reconstructed
+    if len(payload) > len(flat):
+        raise ValueError("Message too long for image")
 
-    def embed_data(self, image_path, secret_data, output_folder="output_DWT"):
-        img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-        if img is None:
-            print(f"[Lỗi] Không đọc được ảnh: {image_path}")
-            return None
+    for i, bit in enumerate(payload):
+        val = int(flat[i])
+        flat[i] = float((val & ~1) | int(bit))
 
-        if img.ndim == 2:
-            is_grayscale = True
-            height, width = img.shape
-            channel_data = img
-        else:
-            is_grayscale = False
-            height, width, channels = img.shape
-            channel_data = img[:, :, self.channel_to_use]
+    return flat.reshape(HH.shape)
 
-        if height % 2 != 0: height -= 1
-        if width % 2 != 0: width -= 1
+def embed_dwt(image_path, message, output_path):
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        raise ValueError("Cannot read image")
 
-        channel_data = channel_data[:height, :width]
+    coeffs = dwt2(img)
+    LL, (LH, HL, HH) = coeffs
 
-        binary_secret = text_to_bits(secret_data)
-        data_len = len(binary_secret)
+    bits = text_to_bits(message)
+    HH_new = embed_bits_in_HH(HH, bits)
 
-        flat_pixels = channel_data.flatten()
-        s, d = self._iwt_haar_forward(flat_pixels)
+    stego = idwt2((LL, (LH, HL, HH_new)))
+    stego = np.clip(stego, 0, 255).astype(np.uint8)
 
-        if data_len > len(d):
-            print(f"[Lỗi] Ảnh {os.path.basename(image_path)} quá nhỏ!")
-            return None
+    cv2.imwrite(output_path, stego)
 
-        d_modified = d.copy()
-        for i in range(data_len):
-            d_modified[i] = (d_modified[i] & ~1) | int(binary_secret[i])
-
-        reconstructed_flat = self._iwt_haar_inverse(s, d_modified)
-        reconstructed_channel = reconstructed_flat.reshape((height, width))
-        reconstructed_channel = np.clip(reconstructed_channel, 0, 255).astype(np.uint8)
-
-        if is_grayscale:
-            stego_img = reconstructed_channel
-        else:
-            stego_img = img[:height, :width, :].copy()
-            stego_img[:, :, self.channel_to_use] = reconstructed_channel
-
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-        filename = os.path.basename(image_path)
-        name, ext = os.path.splitext(filename)
-
-        # --- THAY ĐỔI Ở ĐÂY: Đổi tên file output thành _output_DWT ---
-        output_path = os.path.join(output_folder, f"{name}_output_DWT.png")
-
-        cv2.imwrite(output_path, stego_img)
-        return output_path
-
-    def extract_data(self, stego_image_path):
-        img = cv2.imread(stego_image_path, cv2.IMREAD_UNCHANGED)
-        if img is None:
-            return "Lỗi đọc file"
-
-        if img.ndim == 2:
-            channel_data = img
-        else:
-            channel_data = img[:, :, self.channel_to_use]
-
-        flat_pixels = channel_data.flatten()
-        s, d = self._iwt_haar_forward(flat_pixels)
-
-        binary_data = ""
-        delimiter_found = False
-
-        for val in d:
-            binary_data += str(val & 1)
-            if binary_data.endswith(self.DELIMITER):
-                binary_data = binary_data[:-len(self.DELIMITER)]
-                delimiter_found = True
-                break
-
-        if not delimiter_found:
-            return "[Cảnh báo] Không tìm thấy dấu hiệu kết thúc tin nhắn."
-
-        return self._binary_to_text(binary_data)
-
-
-
-def embed_dwt(image_path, secret_text, output_path):
-    tool = IWTSteganography()
-    folder = os.path.dirname(output_path)
-    os.makedirs(folder, exist_ok=True)
-    return tool.embed_data(image_path, secret_text, folder)
-
-def extract_dwt(stego_image_path):
-    tool = IWTSteganography()
-    return tool.extract_data(stego_image_path)
-
+# ================= CLI =================
 
 if __name__ == "__main__":
-    import os
-    import glob
+    INPUT = "dataset"
+    OUTPUT = "output/dwt"
+    MESSAGE = "DigitalForensic2026"
 
-    INPUT_FOLDER = "dataset"          # đổi về dataset cho thống nhất
-    OUTPUT_FOLDER = "output/dwt"       # chuẩn hóa output
-    SECRET_MESSAGE = "DigitalForensic2026"
+    os.makedirs(OUTPUT, exist_ok=True)
+    images = glob.glob(os.path.join(INPUT, "*.png"))
 
-    ENABLE_EXTRACT_TEST = False        # <<< CHỈ BẬT KHI CẦN DEBUG
-
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-    tool = IWTSteganography()
-
-    types = ('*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tif')
-    image_files = []
-    for t in types:
-        image_files.extend(glob.glob(os.path.join(INPUT_FOLDER, t)))
-
-    if not image_files:
-        print(f"[!] Không tìm thấy ảnh trong '{INPUT_FOLDER}'")
-        exit()
-
-    print(f"[+] Tìm thấy {len(image_files)} ảnh")
+    print(f"[+] DWT embedding: {len(images)} images")
     print("-" * 50)
 
-    for img_path in image_files:
-        img_name = os.path.basename(img_path)
-        print(f"[*] Embedding: {img_name}")
-
-        stego_path = tool.embed_data(
-            img_path,
-            SECRET_MESSAGE,
-            OUTPUT_FOLDER
-        )
-
-        if stego_path:
-            print(f"    -> Saved: {stego_path}")
-
-            if ENABLE_EXTRACT_TEST:
-                recovered_msg = tool.extract_data(stego_path)
-                if recovered_msg == SECRET_MESSAGE:
-                    print("    [OK] Extract thành công")
-                else:
-                    print("    [FAIL] Extract sai")
-
-        print("-" * 50)
+    for img in images:
+        name = os.path.basename(img)
+        out = os.path.join(OUTPUT, name.replace(".png", "_output_DWT.png"))
+        embed_dwt(img, MESSAGE, out)
+        print(f"[*] {name} -> Saved: {out}")
