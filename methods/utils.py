@@ -3,8 +3,8 @@ import numpy as np
 # Cấu hình "Nồi đồng cối đá" để bao chạy
 DFT_MARKER = "####"
 
-DCT_DELTA = 60
-DFT_DELTA = 80       # Tăng Delta lên cao để chống nhiễu do cắt cụt pixel (Clipping)
+DCT_DELTA = 25
+DFT_DELTA = 60       # Tăng Delta lên cao để chống nhiễu do cắt cụt pixel (Clipping)
 BLOCK_SIZE = 8   
 
 def text_to_bits(text):

@@ -2,7 +2,7 @@ import os
 
 print("=== GENERATE STEGO IMAGES ===")
 
-print("\n[DFT]")
+print("\n[DCT]")
 os.system("python -m methods.embed.DCT")
 
 print("\n[DFT]")

@@ -1,45 +1,55 @@
 import cv2
 import numpy as np
 import os
-import glob
-from ..utils import text_to_bits, bits_to_text, DCT_DELTA, BLOCK_SIZE
+from ..utils import bits_to_text, DCT_DELTA, BLOCK_SIZE, DFT_MARKER
 
-
-DELIMITER = '1111111111111110'
-CHANNEL = 0
-BLOCK_SIZE = 8
-COEF_POS = (4, 3)
-
-def dct2(block):
-    return cv2.dct(block.astype(np.float32))
+CHANNEL = 0       # Blue
+COEF_POS = (4, 3) # Phải khớp với Embed
 
 def extract_dct(image_path):
-    img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+    img = cv2.imread(image_path)
     if img is None:
         return "[ERROR] Cannot read image"
 
     h, w, _ = img.shape
-    h -= h % BLOCK_SIZE
-    w -= w % BLOCK_SIZE
+    h_crop = (h // BLOCK_SIZE) * BLOCK_SIZE
+    w_crop = (w // BLOCK_SIZE) * BLOCK_SIZE
 
-    channel = img[:h, :w, CHANNEL].astype(np.float32)
+    # Lấy kênh Blue
+    channel = img[:h_crop, :w_crop, CHANNEL]
 
-    bits = ""
+    extracted_bits = ""
 
-    for i in range(0, h, BLOCK_SIZE):
-        for j in range(0, w, BLOCK_SIZE):
+    for i in range(0, h_crop, BLOCK_SIZE):
+        for j in range(0, w_crop, BLOCK_SIZE):
             block = channel[i:i+BLOCK_SIZE, j:j+BLOCK_SIZE]
-            dct_block = dct2(block)
-
+            
+            # DCT
+            dct_block = cv2.dct(block.astype(np.float32))
+            
+            # Lấy giá trị
             u, v = COEF_POS
-            bits += str(int(dct_block[u, v]) & 1)
+            val = dct_block[u, v]
+            
+            # Giải mã QIM: k = round(val / DELTA)
+            # Bit = k % 2
+            k = round(val / DCT_DELTA)
+            extracted_bits += str(k % 2)
 
-            if bits.endswith(DELIMITER):
-                bits = bits[:-len(DELIMITER)]
-                return bits_to_text(bits)
+            # Check DFT_MARKER (Logic tối ưu)
+            if len(extracted_bits) % 8 == 0:
+                try:
+                    # Chỉ check đoạn cuối
+                    current_text = bits_to_text(extracted_bits)
+                    if current_text.endswith(DFT_MARKER):
+                        return current_text[:-len(DFT_MARKER)]
+                except:
+                    pass
 
-    return "[WARN] Delimiter not found"
+    return "[WARN] DFT_MARKER not found (Tin có thể bị hỏng)"
 
+if __name__ == "__main__":
+    pass
 
 if __name__ == "__main__":
     INPUT_FOLDER = "output/dct"
